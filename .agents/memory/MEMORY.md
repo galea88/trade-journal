@@ -1,0 +1,4 @@
+- [Trading Journal Next.js setup](trading-journal-nextjs.md) — App Router + src/views/ pattern; src/pages/ reserved name causes Next.js conflict.
+- [Clerk React in Next.js](clerk-react-nextjs.md) — Using @clerk/react (not @clerk/nextjs) for client-side-only auth; env var wiring via dev script.
+- [Clerk Expo mobile auth](clerk-expo-mobile.md) — @clerk/expo v3 with token-cache, useSSO for OAuth, custom screens only (no native Clerk components in Expo Go).
+- [npm workspace migration](npm-workspace-migration.md) — pnpm→npm migration: arborist bug, esbuild peer conflict, workspace symlinks, .bin recovery, react-native partial install fix.

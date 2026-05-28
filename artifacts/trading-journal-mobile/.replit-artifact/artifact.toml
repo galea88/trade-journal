@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/mobile/"
+title = "Trading Journal Mobile"
+version = "1.0.0"
+id = "artifacts/trading-journal-mobile"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+name = "expo"
+paths = [ "/mobile/" ]
+localPort = 22226
+
+[services.development]
+run = "npm run dev -w @workspace/trading-journal-mobile"
+
+[services.production]
+build = [ "npm", "run", "build", "-w", "@workspace/trading-journal-mobile" ]
+run = [ "npm", "run", "serve", "-w", "@workspace/trading-journal-mobile" ]
+
+[services.env]
+PORT = "22226"
+BASE_PATH = "/mobile/"
