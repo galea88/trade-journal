@@ -87,6 +87,27 @@ function normalizeAssetType(val: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// CSV template download
+// ---------------------------------------------------------------------------
+const TEMPLATE_HEADERS = ['asset','assetType','direction','entryDate','entryPrice','quantity','exitDate','exitPrice','fees','stopLoss','takeProfit','notes']
+const TEMPLATE_ROWS = [
+  ['AAPL','stock','long','2025-06-10T09:30:00','182.50','50','2025-06-15T14:00:00','191.20','4.95','179.00','195.00','Breakout setup'],
+  ['BTC','crypto','short','2025-06-12T13:00:00','67800','0.5','2025-06-13T10:00:00','65100','0','69000','63000',''],
+  ['EURUSD','forex','long','2025-06-18T08:00:00','1.0850','10000','','','1.50','1.0800','1.0950',''],
+]
+
+function downloadTemplate() {
+  const csv = [TEMPLATE_HEADERS, ...TEMPLATE_ROWS].map(row => row.join(',')).join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'trades_template.csv'
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 type RowStatus = 'ok' | 'warn' | 'error'
@@ -340,7 +361,14 @@ export function CsvImportDialog({ open, onOpenChange }: CsvImportDialogProps) {
                   ))}
                 </div>
                 <p className="text-muted-foreground/60 text-xs mt-3">
-                  Column names are flexible — common aliases (symbol, side, qty, open/close, etc.) are recognised automatically.
+                  Column names are flexible — common aliases (symbol, side, qty, open/close, etc.) are recognised automatically.{' '}
+                  <button
+                    type="button"
+                    onClick={downloadTemplate}
+                    className="text-primary hover:underline"
+                  >
+                    Download template
+                  </button>
                 </p>
               </div>
 
