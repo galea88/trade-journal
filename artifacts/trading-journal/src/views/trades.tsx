@@ -11,12 +11,14 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
-import { Plus } from 'lucide-react'
+import { Plus, Upload } from 'lucide-react'
 import { format } from 'date-fns'
 import { TradeForm } from '@/components/trades/TradeForm'
+import { CsvImportDialog } from '@/components/trades/CsvImportDialog'
 
 export default function Trades() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [isImportOpen, setIsImportOpen] = useState(false)
   const [assetTypeFilter, setAssetTypeFilter] = useState<string>('all')
 
   const { data: trades, isLoading } = useListTrades(
@@ -44,6 +46,10 @@ export default function Trades() {
             </SelectContent>
           </Select>
 
+          <Button variant="outline" onClick={() => setIsImportOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" /> Import CSV
+          </Button>
+
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
               <Button><Plus className="h-4 w-4 mr-2" /> Log Trade</Button>
@@ -57,6 +63,8 @@ export default function Trades() {
           </Dialog>
         </div>
       </div>
+
+      <CsvImportDialog open={isImportOpen} onOpenChange={setIsImportOpen} />
 
       <Card>
         <CardContent className="p-0">

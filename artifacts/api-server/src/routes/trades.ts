@@ -173,6 +173,49 @@ router.put("/trades/:id", requireAuth, async (req, res) => {
   res.json(enrichTrade(trade));
 });
 
+router.post("/trades/import", requireAuth, async (req, res) => {
+  const { userId } = req as AuthedRequest;
+  const { trades } = req.body;
+
+  if (!Array.isArray(trades) || trades.length === 0) {
+    res.status(400).json({ error: "trades must be a non-empty array" });
+    return;
+  }
+
+  const inserted: ReturnType<typeof enrichTrade>[] = [];
+  const errors: { index: number; error: string }[] = [];
+
+  for (let i = 0; i < trades.length; i++) {
+    const row = trades[i];
+    try {
+      const [trade] = await db
+        .insert(tradesTable)
+        .values({
+          userId,
+          asset: row.asset,
+          assetType: row.assetType || "stock",
+          direction: row.direction,
+          entryPrice: String(row.entryPrice),
+          exitPrice: row.exitPrice ? String(row.exitPrice) : null,
+          quantity: String(row.quantity),
+          fees: row.fees ? String(row.fees) : "0",
+          entryDate: new Date(row.entryDate),
+          exitDate: row.exitDate ? new Date(row.exitDate) : null,
+          stopLoss: row.stopLoss ? String(row.stopLoss) : null,
+          takeProfit: row.takeProfit ? String(row.takeProfit) : null,
+          notes: row.notes || null,
+          strategyId: null,
+        })
+        .returning();
+      inserted.push(enrichTrade(trade));
+    } catch (e) {
+      errors.push({ index: i, error: e instanceof Error ? e.message : "Unknown error" });
+    }
+  }
+
+  res.json({ imported: inserted.length, skipped: errors.length, errors });
+});
+
 router.delete("/trades/:id", requireAuth, async (req, res) => {
   const { userId } = req as AuthedRequest;
   const id = parseInt(req.params.id, 10);
