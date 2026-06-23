@@ -5,7 +5,9 @@ import {
   numeric,
   timestamp,
   integer,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -44,9 +46,15 @@ export const tradesTable = pgTable("trades", {
   notes: text("notes"),
   stopLoss: numeric("stop_loss", { precision: 20, scale: 8 }),
   takeProfit: numeric("take_profit", { precision: 20, scale: 8 }),
+  externalId: text("external_id"),
+  source: text("source"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (t) => [
+  uniqueIndex("trades_user_external_id_idx")
+    .on(t.userId, t.externalId)
+    .where(sql`${t.externalId} IS NOT NULL`),
+]);
 
 export const insertTradeSchema = createInsertSchema(tradesTable).omit({
   id: true,

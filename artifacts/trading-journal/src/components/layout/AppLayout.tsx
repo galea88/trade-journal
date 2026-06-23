@@ -10,7 +10,8 @@ import {
   BookOpen,
   ShieldAlert,
   LogOut,
-  Menu
+  Menu,
+  Plug,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
@@ -23,6 +24,7 @@ const navItems = [
   { href: '/calendar', label: 'Calendar', icon: CalendarIcon },
   { href: '/playbook', label: 'Playbook', icon: BookOpen },
   { href: '/risk', label: 'Risk', icon: ShieldAlert },
+  { href: '/integrations', label: 'Integrations', icon: Plug },
 ]
 
 export function AppLayout({ children }: { children: React.ReactNode }) {

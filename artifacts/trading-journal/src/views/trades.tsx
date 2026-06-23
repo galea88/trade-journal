@@ -126,7 +126,12 @@ function TradeRow({ trade }: { trade: any }) {
     <tr className="border-b border-border hover:bg-muted/30 transition-colors">
       <td className="px-4 py-3 whitespace-nowrap">{format(new Date(trade.entryDate), 'MMM d, yy HH:mm')}</td>
       <td className="px-4 py-3 font-bold">
-        {trade.asset}
+        <div className="flex items-center gap-2">
+          {trade.asset}
+          {trade.source === 'ibkr' && (
+            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-blue-500/15 text-blue-400 border border-blue-500/20">IBKR</span>
+          )}
+        </div>
         <span className="block text-[10px] text-muted-foreground font-normal uppercase tracking-wider">{trade.assetType}</span>
       </td>
       <td className="px-4 py-3">
