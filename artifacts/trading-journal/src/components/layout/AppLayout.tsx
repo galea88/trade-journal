@@ -12,6 +12,7 @@ import {
   LogOut,
   Menu,
   Plug,
+  TrendingUp,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
@@ -19,6 +20,7 @@ import { useState } from 'react'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/positions', label: 'Positions', icon: TrendingUp },
   { href: '/trades', label: 'Trade Log', icon: List },
   { href: '/analytics', label: 'Analytics', icon: LineChart },
   { href: '/calendar', label: 'Calendar', icon: CalendarIcon },
