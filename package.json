@@ -8,9 +8,10 @@
     "lib/*"
   ],
   "scripts": {
-    "build": "npm run typecheck && npm run build --workspaces --if-present",
+    "dev": "next dev -p 3000",
+    "build": "npm run typecheck && npm run build",
     "typecheck:libs": "tsc --build",
-    "typecheck": "npm run typecheck:libs && npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck:libs && npm run typecheck"
   },
   "devDependencies": {
     "prettier": "^3.8.3",

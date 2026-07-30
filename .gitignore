@@ -48,3 +48,6 @@ Thumbs.db
 .cache/
 .local/
 scripts/post-merge.sh
+
+# Env files
+.env*
