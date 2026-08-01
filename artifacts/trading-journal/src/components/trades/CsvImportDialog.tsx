@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import { Upload, FileText, X, CheckCircle2, XCircle, AlertTriangle, ArrowLeft } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
+import { SelectGroup, SelectLabel } from '@radix-ui/react-select'
 
 // ---------------------------------------------------------------------------
 // CSV parser — handles quoted fields and trims whitespace
@@ -186,6 +188,7 @@ export function CsvImportDialog({ open, onOpenChange }: CsvImportDialogProps) {
   const [rows, setRows] = useState<ParsedRow[]>([])
   const [skipped, setSkipped] = useState<Set<number>>(new Set())
   const [parseError, setParseError] = useState<string | null>(null)
+  const [broker, setBroker] = useState<string>()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -316,6 +319,20 @@ export function CsvImportDialog({ open, onOpenChange }: CsvImportDialogProps) {
         {step === 'upload' ? (
           <>
             <div className="px-6 py-6 space-y-5">
+              {/* Broker dropdown */}
+              <div>
+                <Select value={broker} onValueChange={setBroker}>
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Select Broker" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="etoro">Etoro</SelectItem>
+                    <SelectItem value="ibkr">IBKR</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* Drop zone */}
               <div
                 onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
