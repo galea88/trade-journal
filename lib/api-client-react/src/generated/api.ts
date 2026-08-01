@@ -21,6 +21,7 @@ import type {
 
 import type {
   AnalyticsSummary,
+  Broker,
   CreateStrategyInput,
   CreateTradeInput,
   DailyPnl,
@@ -1020,7 +1021,21 @@ export function useGetCalendarDaily<TData = Awaited<ReturnType<typeof getCalenda
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
+/**
+ * @summary Get Brokers
+ */
+export const getGetBrokersUrl = () => {
+  return '/api/brokers';
+}
 
+export const getBrokers = async (options?: RequestInit): Promise<Broker[]> => {
+
+  return customFetch<Broker[]>(getGetBrokersUrl(),
+  {
+    ...options,
+    method: 'GET'
+  }
+);}
 
 
 

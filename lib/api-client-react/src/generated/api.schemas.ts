@@ -208,3 +208,8 @@ year?: number;
 month?: number;
 };
 
+export interface Broker {
+  broker_id: number;
+  broker_name: string;
+  broker_csv_template: string;
+}

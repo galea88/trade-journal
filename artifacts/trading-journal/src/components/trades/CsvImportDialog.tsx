@@ -1,7 +1,7 @@
 'use client'
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { getListTradesQueryKey } from '@workspace/api-client-react'
+import { getBrokers, getListTradesQueryKey } from '@workspace/api-client-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
@@ -182,6 +182,8 @@ interface CsvImportDialogProps {
 }
 
 export function CsvImportDialog({ open, onOpenChange }: CsvImportDialogProps) {
+  const [brokers, setBrokers] = useState<BrokerOption[]>([])
+  const [brokerLoading, setBrokerLoading] = useState(false)
   const [step, setStep] = useState<'upload' | 'preview'>('upload')
   const [dragging, setDragging] = useState(false)
   const [fileName, setFileName] = useState<string | null>(null)
@@ -192,6 +194,34 @@ export function CsvImportDialog({ open, onOpenChange }: CsvImportDialogProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const queryClient = useQueryClient()
   const { toast } = useToast()
+
+// ---------------------------------------------------------------------------
+// Broker Options
+// ---------------------------------------------------------------------------
+  interface BrokerOption {
+    brokerId: number
+    brokerName: string
+    brokerCsvTemplate?: string | null
+  }
+
+  useEffect(() => {
+  const loadBrokers = async () => {
+    try {
+        setBrokerLoading(true)
+        const res = await getBrokers()
+      
+        setBrokers(res)
+      } catch (err) {
+        console.error('Failed to load brokers', err)
+        setBrokers([])
+      } finally {
+        setBrokerLoading(false)
+      }
+    }
+
+    loadBrokers()
+    return;
+  }, [])
 
   const reset = useCallback(() => {
     setStep('upload')
@@ -323,12 +353,16 @@ export function CsvImportDialog({ open, onOpenChange }: CsvImportDialogProps) {
               <div>
                 <Select value={broker} onValueChange={setBroker}>
                   <SelectTrigger className="w-[150px]">
-                    <SelectValue placeholder="Select Broker" />
+                    <SelectValue placeholder={brokerLoading ? 'Loading ...' : "Select Broker"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="etoro">Etoro</SelectItem>
-                    <SelectItem value="ibkr">IBKR</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    {
+                      brokers.map((brokerOption) => (
+                        <SelectItem key={brokerOption.brokerId} value={String(brokerOption.brokerId)}>
+                          {brokerOption.brokerName}
+                        </SelectItem>
+                      ))
+                    }
                   </SelectContent>
                 </Select>
               </div>

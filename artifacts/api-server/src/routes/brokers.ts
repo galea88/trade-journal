@@ -12,10 +12,24 @@ import {
   decryptCredentials,
 } from "../lib/credentialsCrypto";
 import type { Request } from "express";
+import { brokersTable } from "@workspace/db/schema";
 
 type AuthedRequest = Request & { userId: string };
 
 const router = Router();
+
+router.get("/brokers", requireAuth, async (_req, res) => {
+  const rows = await db
+    .select({
+      brokerId: brokersTable.brokerId,
+      brokerName: brokersTable.brokerName,
+      brokerCsvTemplate: brokersTable.brokerCsvTemplate,
+    })
+    .from(brokersTable)
+    .orderBy(brokersTable.brokerName);
+
+  res.json(rows);
+});
 
 router.get("/brokers/status", requireAuth, async (req, res) => {
   const { userId } = req as AuthedRequest;
