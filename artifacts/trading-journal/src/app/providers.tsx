@@ -5,6 +5,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { Toaster } from '@/components/ui/toaster'
 import { clerkAppearance } from '@/lib/clerk-appearance'
 import { initSentry } from '@/lib/sentry'
+import {ApiAuthInitializer} from '../components/ApiAuthInitializer'
 
 initSentry()
 
@@ -17,12 +18,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
       signUpUrl="/sign-up"
       appearance={clerkAppearance}
     >
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          {children}
-          <Toaster />
-        </TooltipProvider>
-      </QueryClientProvider>
+      <ApiAuthInitializer>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            {children}
+            <Toaster />
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ApiAuthInitializer>
     </ClerkProvider>
   )
 }
