@@ -22,6 +22,7 @@ import type {
 import type {
   AnalyticsSummary,
   Broker,
+  BulkTradeImportResponse,
   CreateStrategyInput,
   CreateTradeInput,
   DailyPnl,
@@ -1037,7 +1038,24 @@ export const getBrokers = async (options?: RequestInit): Promise<Broker[]> => {
   }
 );}
 
+export const getBulkTradeImportUrl = () => {
+  return `/api/trades/import`
+}
 
+/**
+ * @summary Bulk import new trades
+ */
+export const bulkTradeImport = async (bulkTradeData: any, options?: RequestInit): Promise<BulkTradeImportResponse> => {
+
+  return await customFetch<BulkTradeImportResponse>(getBulkTradeImportUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      bulkTradeData,)
+  });
+}
 
 
 

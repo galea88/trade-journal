@@ -209,7 +209,16 @@ month?: number;
 };
 
 export interface Broker {
-  broker_id: number;
-  broker_name: string;
-  broker_csv_template: string;
+  brokerId: number;
+  brokerName: string;
+  brokerCsvTemplate: string;
+}
+
+export interface BulkTradeImportResponse {
+  imported: number;
+  skipped: number;
+  errors: Array<{
+    index: number;
+    error: string;
+  }>;
 }

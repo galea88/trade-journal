@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Plus, Upload } from 'lucide-react'
 import { format } from 'date-fns'
 import { TradeForm } from '@/components/trades/TradeForm'
-import { CsvImportDialog } from '@/components/trades/CsvImportDialog'
+import { CsvImportDialog } from '@/components/trades/CsvImportDialogEnhanced'
 
 export default function Trades() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
