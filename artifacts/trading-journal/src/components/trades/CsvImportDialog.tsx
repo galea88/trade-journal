@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { getBrokers, getListTradesQueryKey } from '@workspace/api-client-react'
+import { Broker, getBrokers, getListTradesQueryKey } from '@workspace/api-client-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
@@ -182,7 +182,7 @@ interface CsvImportDialogProps {
 }
 
 export function CsvImportDialog({ open, onOpenChange }: CsvImportDialogProps) {
-  const [brokers, setBrokers] = useState<BrokerOption[]>([])
+  const [brokers, setBrokers] = useState<Broker[]>([])
   const [brokerLoading, setBrokerLoading] = useState(false)
   const [step, setStep] = useState<'upload' | 'preview'>('upload')
   const [dragging, setDragging] = useState(false)
@@ -198,18 +198,12 @@ export function CsvImportDialog({ open, onOpenChange }: CsvImportDialogProps) {
 // ---------------------------------------------------------------------------
 // Broker Options
 // ---------------------------------------------------------------------------
-  interface BrokerOption {
-    brokerId: number
-    brokerName: string
-    brokerCsvTemplate?: string | null
-  }
-
   useEffect(() => {
-  const loadBrokers = async () => {
-    try {
+    const loadBrokers = async () => {
+      try {
         setBrokerLoading(true)
         const res = await getBrokers()
-      
+
         setBrokers(res)
       } catch (err) {
         console.error('Failed to load brokers', err)
