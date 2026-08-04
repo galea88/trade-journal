@@ -60,8 +60,7 @@ const TRADE_FIELDS: TradeFieldDefinition[] = [
   { key: 'notes', label: 'Notes', required: false },
 ]
 
-const BROKER_ALIASES: Record<string, Partial<Record<TradeFieldKey, string[]>>> = {
-  etoro: {
+const COLUMN_ALIASES: Partial<Record<TradeFieldKey, string[]>> = {
     asset: ['action'],
     assetType: ['type'],
     direction: ['Long / Short'],
@@ -73,22 +72,7 @@ const BROKER_ALIASES: Record<string, Partial<Record<TradeFieldKey, string[]>>> =
     fees: ['spread fees'],
     stopLoss: ['stop loss rate'],
     takeProfit: ['take profit rate'],
-    notes: ['notes', 'comment', 'comments', 'remarks'],
-  },
-  ibkr: {
-    asset: ['symbol', 'ticker', 'instrument', 'security', 'description'],
-    assetType: ['asset type', 'product type', 'market', 'security type'],
-    direction: ['buy/sell', 'side', 'action', 'transaction type', 'direction'],
-    entryPrice: ['trade price', 'price', 'open price', 'avg price', 'entry price'],
-    exitPrice: ['close price', 'exit price', 'close', 'proceeds'],
-    quantity: ['quantity', 'qty', 'size', 'shares', 'contracts', 'units'],
-    entryDate: ['trade date', 'date', 'execution date', 'date time', 'open date', 'entry date'],
-    exitDate: ['close date', 'exit date', 'closedate', 'close datetime'],
-    fees: ['commission', 'fee', 'fees', 'cost'],
-    stopLoss: ['stop loss', 'stoploss', 'sl'],
-    takeProfit: ['take profit', 'takeprofit', 'tp'],
-    notes: ['notes', 'comment', 'comments', 'remarks'],
-  },
+    notes: ['notes', 'comment', 'comments', 'remarks']  
 }
 
 function normalizeHeader(value: string): string {
@@ -160,10 +144,8 @@ function resolveFieldMapping(headers: string[], brokerName?: string): Record<Tra
     notes: null,
   }
 
-  const brokerKey = brokerName ? normalizeHeader(brokerName) : ''
-
   for (const field of TRADE_FIELDS) {
-    const aliases = [...(brokerKey ? BROKER_ALIASES[brokerKey]?.[field.key] ?? [] : [])]
+    const aliases = COLUMN_ALIASES[field.key] ?? []
     const match = headers.find((header) => aliases.some((alias) => headerMatches(header, alias)))
     if (match) map[field.key] = match
   }
@@ -287,8 +269,6 @@ function validateRow(raw: Record<string, string>, fieldMap: Record<TradeFieldKey
 }
 
 export function CsvImportDialog({ open, onOpenChange }: CsvImportDialogProps) {
-  const [brokers, setBrokers] = useState<Broker[]>([])
-  const [brokerLoading, setBrokerLoading] = useState(false)
   const [step, setStep] = useState<'upload' | 'map' | 'preview'>('upload')
   const [dragging, setDragging] = useState(false)
   const [fileName, setFileName] = useState<string | null>(null)
@@ -311,26 +291,9 @@ export function CsvImportDialog({ open, onOpenChange }: CsvImportDialogProps) {
   })
   const [skipped, setSkipped] = useState<Set<number>>(new Set())
   const [parseError, setParseError] = useState<string | null>(null)
-  const [broker, setBroker] = useState<string>()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const queryClient = useQueryClient()
   const { toast } = useToast()
-
-  useEffect(() => {
-    const loadBrokers = async () => {
-      try {
-        setBrokerLoading(true)
-        const response = await getBrokers()
-        setBrokers(response)
-      } catch (error) {
-        console.error('Failed to load brokers', error)
-      } finally {
-        setBrokerLoading(false)
-      }
-    }
-
-    loadBrokers()
-  }, [])
 
   const reset = useCallback(() => {
     setStep('upload')
@@ -383,8 +346,7 @@ export function CsvImportDialog({ open, onOpenChange }: CsvImportDialogProps) {
         return
       }
 
-      const selectedBroker = brokers.find((option) => String(option.brokerId) === broker)?.brokerName
-      const inferredMapping = resolveFieldMapping(headers, selectedBroker)
+      const inferredMapping = resolveFieldMapping(headers)
       setSourceHeaders(headers)
       setSourceRows(rawRows)
       setFieldMapping(inferredMapping)
@@ -393,7 +355,7 @@ export function CsvImportDialog({ open, onOpenChange }: CsvImportDialogProps) {
       buildRows(rawRows, inferredMapping)
     }
     reader.readAsText(file)
-  }, [broker, brokers, buildRows])
+  }, [buildRows])
 
   useEffect(() => {
     if (sourceRows.length === 0) return
@@ -488,21 +450,6 @@ export function CsvImportDialog({ open, onOpenChange }: CsvImportDialogProps) {
         {step === 'upload' ? (
           <>
             <div className="px-6 py-6 space-y-5">
-              <div>
-                <Select value={broker} onValueChange={setBroker}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder={brokerLoading ? 'Loading ...' : 'Select Broker'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {brokers.map((brokerOption) => (
-                      <SelectItem key={brokerOption.brokerId} value={String(brokerOption.brokerId)}>
-                        {brokerOption.brokerName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
               <div
                 onDragOver={(event) => {
                   event.preventDefault()
