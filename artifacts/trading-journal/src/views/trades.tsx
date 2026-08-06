@@ -15,6 +15,8 @@ import { Plus, Upload } from 'lucide-react'
 import { format } from 'date-fns'
 import { TradeForm } from '@/components/trades/TradeForm'
 import { CsvImportDialog } from '@/components/trades/CsvImportDialogEnhanced'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { DepositWithdrawalForm } from '@/components/trades/DepositWithdrawalForm'
 
 export default function Trades() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -52,13 +54,28 @@ export default function Trades() {
 
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button><Plus className="h-4 w-4 mr-2" /> Log Trade</Button>
+              <Button><Plus className="h-4 w-4 mr-2" /> Import Trades</Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Log New Trade</DialogTitle>
               </DialogHeader>
-              <TradeForm onSuccess={() => setIsCreateOpen(false)} />
+
+    
+            <Tabs defaultValue="profile" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="trade">Trade</TabsTrigger>
+                <TabsTrigger value="deposit-withdrawal">Deposit / Withdrawal</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="trade" className="space-y-4 pt-4">
+                 <TradeForm onSuccess={() => setIsCreateOpen(false)} />
+              </TabsContent>
+
+              <TabsContent value="deposit-withdrawal" className="space-y-4 pt-4">
+                <DepositWithdrawalForm onSuccess={() => setIsCreateOpen(false)} />
+              </TabsContent>              
+            </Tabs>             
             </DialogContent>
           </Dialog>
         </div>

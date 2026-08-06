@@ -13,21 +13,21 @@ export interface ErrorResponse {
   error: string;
 }
 
-export type TradeAssetType = typeof TradeAssetType[keyof typeof TradeAssetType];
-
+export type TradeAssetType =
+  (typeof TradeAssetType)[keyof typeof TradeAssetType];
 
 export const TradeAssetType = {
-  stock: 'stock',
-  forex: 'forex',
-  crypto: 'crypto',
+  stock: "stock",
+  forex: "forex",
+  crypto: "crypto",
 } as const;
 
-export type TradeDirection = typeof TradeDirection[keyof typeof TradeDirection];
-
+export type TradeDirection =
+  (typeof TradeDirection)[keyof typeof TradeDirection];
 
 export const TradeDirection = {
-  long: 'long',
-  short: 'short',
+  long: "long",
+  short: "short",
 } as const;
 
 export interface Trade {
@@ -54,21 +54,21 @@ export interface Trade {
   updatedAt: string;
 }
 
-export type CreateTradeInputAssetType = typeof CreateTradeInputAssetType[keyof typeof CreateTradeInputAssetType];
-
+export type CreateTradeInputAssetType =
+  (typeof CreateTradeInputAssetType)[keyof typeof CreateTradeInputAssetType];
 
 export const CreateTradeInputAssetType = {
-  stock: 'stock',
-  forex: 'forex',
-  crypto: 'crypto',
+  stock: "stock",
+  forex: "forex",
+  crypto: "crypto",
 } as const;
 
-export type CreateTradeInputDirection = typeof CreateTradeInputDirection[keyof typeof CreateTradeInputDirection];
-
+export type CreateTradeInputDirection =
+  (typeof CreateTradeInputDirection)[keyof typeof CreateTradeInputDirection];
 
 export const CreateTradeInputDirection = {
-  long: 'long',
-  short: 'short',
+  long: "long",
+  short: "short",
 } as const;
 
 export interface CreateTradeInput {
@@ -87,21 +87,21 @@ export interface CreateTradeInput {
   takeProfit?: string | null;
 }
 
-export type UpdateTradeInputAssetType = typeof UpdateTradeInputAssetType[keyof typeof UpdateTradeInputAssetType];
-
+export type UpdateTradeInputAssetType =
+  (typeof UpdateTradeInputAssetType)[keyof typeof UpdateTradeInputAssetType];
 
 export const UpdateTradeInputAssetType = {
-  stock: 'stock',
-  forex: 'forex',
-  crypto: 'crypto',
+  stock: "stock",
+  forex: "forex",
+  crypto: "crypto",
 } as const;
 
-export type UpdateTradeInputDirection = typeof UpdateTradeInputDirection[keyof typeof UpdateTradeInputDirection];
-
+export type UpdateTradeInputDirection =
+  (typeof UpdateTradeInputDirection)[keyof typeof UpdateTradeInputDirection];
 
 export const UpdateTradeInputDirection = {
-  long: 'long',
-  short: 'short',
+  long: "long",
+  short: "short",
 } as const;
 
 export interface UpdateTradeInput {
@@ -188,24 +188,24 @@ export type UnauthorizedResponse = ErrorResponse;
 export type NotFoundResponse = ErrorResponse;
 
 export type ListTradesParams = {
-assetType?: ListTradesAssetType;
-strategyId?: number;
-/** Filter trades by entry date (YYYY-MM-DD) */
-date?: string;
+  assetType?: ListTradesAssetType;
+  strategyId?: number;
+  /** Filter trades by entry date (YYYY-MM-DD) */
+  date?: string;
 };
 
-export type ListTradesAssetType = typeof ListTradesAssetType[keyof typeof ListTradesAssetType];
-
+export type ListTradesAssetType =
+  (typeof ListTradesAssetType)[keyof typeof ListTradesAssetType];
 
 export const ListTradesAssetType = {
-  stock: 'stock',
-  forex: 'forex',
-  crypto: 'crypto',
+  stock: "stock",
+  forex: "forex",
+  crypto: "crypto",
 } as const;
 
 export type GetCalendarDailyParams = {
-year?: number;
-month?: number;
+  year?: number;
+  month?: number;
 };
 
 export interface Broker {
@@ -221,4 +221,24 @@ export interface BulkTradeImportResponse {
     index: number;
     error: string;
   }>;
+}
+
+export interface Deposit {
+  depositId: number;
+  depositAmount: number;
+  depositCreatedAt: string;
+}
+
+export interface Withdrawal {
+  withdrawalId: number;
+  withdrawalAmount: number;
+  withdrawalCreatedAt: string;
+}
+
+export interface CreateDepositInput {
+  depositAmount: string;
+}
+
+export interface CreateWithdrawalInput {
+  withdrawalAmount: string;
 }

@@ -5,10 +5,7 @@
  * Trading Journal API
  * OpenAPI spec version: 0.1.0
  */
-import {
-  useMutation,
-  useQuery
-} from '@tanstack/react-query';
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
   MutationFunction,
   QueryFunction,
@@ -16,17 +13,20 @@ import type {
   UseMutationOptions,
   UseMutationResult,
   UseQueryOptions,
-  UseQueryResult
-} from '@tanstack/react-query';
+  UseQueryResult,
+} from "@tanstack/react-query";
 
 import type {
   AnalyticsSummary,
   Broker,
   BulkTradeImportResponse,
+  CreateDepositInput,
   CreateStrategyInput,
   CreateTradeInput,
+  CreateWithdrawalInput,
   DailyPnl,
   DashboardSummary,
+  Deposit,
   GetCalendarDailyParams,
   HealthStatus,
   ListTradesParams,
@@ -34,990 +34,1115 @@ import type {
   Strategy,
   Trade,
   UnauthorizedResponse,
-  UpdateTradeInput
-} from './api.schemas';
+  UpdateTradeInput,
+  Withdrawal,
+} from "./api.schemas";
 
-import { customFetch } from '../custom-fetch';
-import type { ErrorType , BodyType } from '../custom-fetch';
+import { customFetch } from "../custom-fetch";
+import type { ErrorType, BodyType } from "../custom-fetch";
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
-      type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
-
+type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
-
-
 export const getHealthCheckUrl = () => {
-
-
-
-
-  return `/api/healthz`
-}
+  return `/api/healthz`;
+};
 
 /**
  * @summary Health check
  */
-export const healthCheck = async ( options?: RequestInit): Promise<HealthStatus> => {
-
-  return customFetch<HealthStatus>(getHealthCheckUrl(),
-  {
+export const healthCheck = async (
+  options?: RequestInit,
+): Promise<HealthStatus> => {
+  return customFetch<HealthStatus>(getHealthCheckUrl(), {
     ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
+    method: "GET",
+  });
+};
 
 export const getHealthCheckQueryKey = () => {
-    return [
-    `/api/healthz`
-    ] as const;
-    }
+  return [`/api/healthz`] as const;
+};
 
+export const getHealthCheckQueryOptions = <
+  TData = Awaited<ReturnType<typeof healthCheck>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof healthCheck>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-export const getHealthCheckQueryOptions = <TData = Awaited<ReturnType<typeof healthCheck>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-) => {
+  const queryKey = queryOptions?.queryKey ?? getHealthCheckQueryKey();
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof healthCheck>>> = ({
+    signal,
+  }) => healthCheck({ signal, ...requestOptions });
 
-  const queryKey =  queryOptions?.queryKey ?? getHealthCheckQueryKey();
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof healthCheck>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
 
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof healthCheck>>> = ({ signal }) => healthCheck({ signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type HealthCheckQueryResult = NonNullable<Awaited<ReturnType<typeof healthCheck>>>
-export type HealthCheckQueryError = ErrorType<unknown>
-
+export type HealthCheckQueryResult = NonNullable<
+  Awaited<ReturnType<typeof healthCheck>>
+>;
+export type HealthCheckQueryError = ErrorType<unknown>;
 
 /**
  * @summary Health check
  */
 
-export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export function useHealthCheck<
+  TData = Awaited<ReturnType<typeof healthCheck>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof healthCheck>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getHealthCheckQueryOptions(options);
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-
-  const queryOptions = getHealthCheckQueryOptions(options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-
-
-
-
-
-
-export const getListTradesUrl = (params?: ListTradesParams,) => {
+export const getListTradesUrl = (params?: ListTradesParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
+      normalizedParams.append(key, value === null ? "null" : value.toString());
     }
   });
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/trades?${stringifiedParams}` : `/api/trades`
-}
+  return stringifiedParams.length > 0
+    ? `/api/trades?${stringifiedParams}`
+    : `/api/trades`;
+};
 
 /**
  * @summary List all trades for the authenticated user
  */
-export const listTrades = async (params?: ListTradesParams, options?: RequestInit): Promise<Trade[]> => {
-
-  return customFetch<Trade[]>(getListTradesUrl(params),
-  {
+export const listTrades = async (
+  params?: ListTradesParams,
+  options?: RequestInit,
+): Promise<Trade[]> => {
+  return customFetch<Trade[]>(getListTradesUrl(params), {
     ...options,
-    method: 'GET'
+    method: "GET",
+  });
+};
 
+export const getListTradesQueryKey = (params?: ListTradesParams) => {
+  return [`/api/trades`, ...(params ? [params] : [])] as const;
+};
 
-  }
-);}
-
-
-
-
-
-export const getListTradesQueryKey = (params?: ListTradesParams,) => {
-    return [
-    `/api/trades`, ...(params ? [params] : [])
-    ] as const;
-    }
-
-
-export const getListTradesQueryOptions = <TData = Awaited<ReturnType<typeof listTrades>>, TError = ErrorType<UnauthorizedResponse>>(params?: ListTradesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listTrades>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListTradesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listTrades>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(
+  params?: ListTradesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTrades>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
 ) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getListTradesQueryKey(params);
 
-  const queryKey =  queryOptions?.queryKey ?? getListTradesQueryKey(params);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listTrades>>> = ({
+    signal,
+  }) => listTrades(params, { signal, ...requestOptions });
 
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listTrades>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
 
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listTrades>>> = ({ signal }) => listTrades(params, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listTrades>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type ListTradesQueryResult = NonNullable<Awaited<ReturnType<typeof listTrades>>>
-export type ListTradesQueryError = ErrorType<UnauthorizedResponse>
-
+export type ListTradesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listTrades>>
+>;
+export type ListTradesQueryError = ErrorType<UnauthorizedResponse>;
 
 /**
  * @summary List all trades for the authenticated user
  */
 
-export function useListTrades<TData = Awaited<ReturnType<typeof listTrades>>, TError = ErrorType<UnauthorizedResponse>>(
- params?: ListTradesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listTrades>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export function useListTrades<
+  TData = Awaited<ReturnType<typeof listTrades>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(
+  params?: ListTradesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTrades>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListTradesQueryOptions(params, options);
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-
-  const queryOptions = getListTradesQueryOptions(params,options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-
 
 export const getCreateTradeUrl = () => {
-
-
-
-
-  return `/api/trades`
-}
+  return `/api/trades`;
+};
 
 /**
  * @summary Create a new trade
  */
-export const createTrade = async (createTradeInput: CreateTradeInput, options?: RequestInit): Promise<Trade> => {
-
-  return customFetch<Trade>(getCreateTradeUrl(),
-  {
+export const createTrade = async (
+  createTradeInput: CreateTradeInput,
+  options?: RequestInit,
+): Promise<Trade> => {
+  return customFetch<Trade>(getCreateTradeUrl(), {
     ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      createTradeInput,)
-  }
-);}
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createTradeInput),
+  });
+};
 
+export const getCreateTradeMutationOptions = <
+  TError = ErrorType<UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createTrade>>,
+    TError,
+    { data: BodyType<CreateTradeInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createTrade>>,
+  TError,
+  { data: BodyType<CreateTradeInput> },
+  TContext
+> => {
+  const mutationKey = ["createTrade"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
 
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createTrade>>,
+    { data: BodyType<CreateTradeInput> }
+  > = (props) => {
+    const { data } = props ?? {};
 
+    return createTrade(data, requestOptions);
+  };
 
-export const getCreateTradeMutationOptions = <TError = ErrorType<UnauthorizedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTrade>>, TError,{data: BodyType<CreateTradeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createTrade>>, TError,{data: BodyType<CreateTradeInput>}, TContext> => {
+  return { mutationFn, ...mutationOptions };
+};
 
-const mutationKey = ['createTrade'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
+export type CreateTradeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createTrade>>
+>;
+export type CreateTradeMutationBody = BodyType<CreateTradeInput>;
+export type CreateTradeMutationError = ErrorType<UnauthorizedResponse>;
 
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createTrade>>, {data: BodyType<CreateTradeInput>}> = (props) => {
-          const {data} = props ?? {};
-
-          return  createTrade(data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type CreateTradeMutationResult = NonNullable<Awaited<ReturnType<typeof createTrade>>>
-    export type CreateTradeMutationBody = BodyType<CreateTradeInput>
-    export type CreateTradeMutationError = ErrorType<UnauthorizedResponse>
-
-    /**
+/**
  * @summary Create a new trade
  */
-export const useCreateTrade = <TError = ErrorType<UnauthorizedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTrade>>, TError,{data: BodyType<CreateTradeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof createTrade>>,
-        TError,
-        {data: BodyType<CreateTradeInput>},
-        TContext
-      > => {
-      return useMutation(getCreateTradeMutationOptions(options));
-    }
+export const useCreateTrade = <
+  TError = ErrorType<UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createTrade>>,
+    TError,
+    { data: BodyType<CreateTradeInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createTrade>>,
+  TError,
+  { data: BodyType<CreateTradeInput> },
+  TContext
+> => {
+  return useMutation(getCreateTradeMutationOptions(options));
+};
 
-export const getGetTradeUrl = (id: number,) => {
-
-
-
-
-  return `/api/trades/${id}`
-}
+export const getGetTradeUrl = (id: number) => {
+  return `/api/trades/${id}`;
+};
 
 /**
  * @summary Get a single trade by ID
  */
-export const getTrade = async (id: number, options?: RequestInit): Promise<Trade> => {
-
-  return customFetch<Trade>(getGetTradeUrl(id),
-  {
+export const getTrade = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Trade> => {
+  return customFetch<Trade>(getGetTradeUrl(id), {
     ...options,
-    method: 'GET'
+    method: "GET",
+  });
+};
 
+export const getGetTradeQueryKey = (id: number) => {
+  return [`/api/trades/${id}`] as const;
+};
 
-  }
-);}
-
-
-
-
-
-export const getGetTradeQueryKey = (id: number,) => {
-    return [
-    `/api/trades/${id}`
-    ] as const;
-    }
-
-
-export const getGetTradeQueryOptions = <TData = Awaited<ReturnType<typeof getTrade>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTrade>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetTradeQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTrade>>,
+  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTrade>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
 ) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getGetTradeQueryKey(id);
 
-  const queryKey =  queryOptions?.queryKey ?? getGetTradeQueryKey(id);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTrade>>> = ({
+    signal,
+  }) => getTrade(id, { signal, ...requestOptions });
 
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getTrade>>, TError, TData> & {
+    queryKey: QueryKey;
+  };
+};
 
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTrade>>> = ({ signal }) => getTrade(id, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTrade>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type GetTradeQueryResult = NonNullable<Awaited<ReturnType<typeof getTrade>>>
-export type GetTradeQueryError = ErrorType<UnauthorizedResponse | NotFoundResponse>
-
+export type GetTradeQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTrade>>
+>;
+export type GetTradeQueryError = ErrorType<
+  UnauthorizedResponse | NotFoundResponse
+>;
 
 /**
  * @summary Get a single trade by ID
  */
 
-export function useGetTrade<TData = Awaited<ReturnType<typeof getTrade>>, TError = ErrorType<UnauthorizedResponse | NotFoundResponse>>(
- id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTrade>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export function useGetTrade<
+  TData = Awaited<ReturnType<typeof getTrade>>,
+  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTrade>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTradeQueryOptions(id, options);
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-
-  const queryOptions = getGetTradeQueryOptions(id,options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-
-
-
-
-
-
-export const getUpdateTradeUrl = (id: number,) => {
-
-
-
-
-  return `/api/trades/${id}`
-}
+export const getUpdateTradeUrl = (id: number) => {
+  return `/api/trades/${id}`;
+};
 
 /**
  * @summary Update a trade
  */
-export const updateTrade = async (id: number,
-    updateTradeInput: UpdateTradeInput, options?: RequestInit): Promise<Trade> => {
-
-  return customFetch<Trade>(getUpdateTradeUrl(id),
-  {
+export const updateTrade = async (
+  id: number,
+  updateTradeInput: UpdateTradeInput,
+  options?: RequestInit,
+): Promise<Trade> => {
+  return customFetch<Trade>(getUpdateTradeUrl(id), {
     ...options,
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      updateTradeInput,)
-  }
-);}
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateTradeInput),
+  });
+};
 
+export const getUpdateTradeMutationOptions = <
+  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateTrade>>,
+    TError,
+    { id: number; data: BodyType<UpdateTradeInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateTrade>>,
+  TError,
+  { id: number; data: BodyType<UpdateTradeInput> },
+  TContext
+> => {
+  const mutationKey = ["updateTrade"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
 
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateTrade>>,
+    { id: number; data: BodyType<UpdateTradeInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
 
+    return updateTrade(id, data, requestOptions);
+  };
 
-export const getUpdateTradeMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTrade>>, TError,{id: number;data: BodyType<UpdateTradeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateTrade>>, TError,{id: number;data: BodyType<UpdateTradeInput>}, TContext> => {
+  return { mutationFn, ...mutationOptions };
+};
 
-const mutationKey = ['updateTrade'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
+export type UpdateTradeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateTrade>>
+>;
+export type UpdateTradeMutationBody = BodyType<UpdateTradeInput>;
+export type UpdateTradeMutationError = ErrorType<
+  UnauthorizedResponse | NotFoundResponse
+>;
 
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateTrade>>, {id: number;data: BodyType<UpdateTradeInput>}> = (props) => {
-          const {id,data} = props ?? {};
-
-          return  updateTrade(id,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type UpdateTradeMutationResult = NonNullable<Awaited<ReturnType<typeof updateTrade>>>
-    export type UpdateTradeMutationBody = BodyType<UpdateTradeInput>
-    export type UpdateTradeMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse>
-
-    /**
+/**
  * @summary Update a trade
  */
-export const useUpdateTrade = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTrade>>, TError,{id: number;data: BodyType<UpdateTradeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof updateTrade>>,
-        TError,
-        {id: number;data: BodyType<UpdateTradeInput>},
-        TContext
-      > => {
-      return useMutation(getUpdateTradeMutationOptions(options));
-    }
+export const useUpdateTrade = <
+  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateTrade>>,
+    TError,
+    { id: number; data: BodyType<UpdateTradeInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateTrade>>,
+  TError,
+  { id: number; data: BodyType<UpdateTradeInput> },
+  TContext
+> => {
+  return useMutation(getUpdateTradeMutationOptions(options));
+};
 
-export const getDeleteTradeUrl = (id: number,) => {
-
-
-
-
-  return `/api/trades/${id}`
-}
+export const getDeleteTradeUrl = (id: number) => {
+  return `/api/trades/${id}`;
+};
 
 /**
  * @summary Delete a trade
  */
-export const deleteTrade = async (id: number, options?: RequestInit): Promise<void> => {
-
-  return customFetch<void>(getDeleteTradeUrl(id),
-  {
+export const deleteTrade = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteTradeUrl(id), {
     ...options,
-    method: 'DELETE'
+    method: "DELETE",
+  });
+};
 
+export const getDeleteTradeMutationOptions = <
+  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteTrade>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteTrade>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteTrade"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
 
-  }
-);}
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteTrade>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
 
+    return deleteTrade(id, requestOptions);
+  };
 
+  return { mutationFn, ...mutationOptions };
+};
 
+export type DeleteTradeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteTrade>>
+>;
 
-export const getDeleteTradeMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteTrade>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof deleteTrade>>, TError,{id: number}, TContext> => {
+export type DeleteTradeMutationError = ErrorType<
+  UnauthorizedResponse | NotFoundResponse
+>;
 
-const mutationKey = ['deleteTrade'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteTrade>>, {id: number}> = (props) => {
-          const {id} = props ?? {};
-
-          return  deleteTrade(id,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type DeleteTradeMutationResult = NonNullable<Awaited<ReturnType<typeof deleteTrade>>>
-
-    export type DeleteTradeMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse>
-
-    /**
+/**
  * @summary Delete a trade
  */
-export const useDeleteTrade = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteTrade>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof deleteTrade>>,
-        TError,
-        {id: number},
-        TContext
-      > => {
-      return useMutation(getDeleteTradeMutationOptions(options));
-    }
+export const useDeleteTrade = <
+  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteTrade>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteTrade>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteTradeMutationOptions(options));
+};
 
 export const getListStrategiesUrl = () => {
-
-
-
-
-  return `/api/strategies`
-}
+  return `/api/strategies`;
+};
 
 /**
  * @summary List all strategies for the authenticated user
  */
-export const listStrategies = async ( options?: RequestInit): Promise<Strategy[]> => {
-
-  return customFetch<Strategy[]>(getListStrategiesUrl(),
-  {
+export const listStrategies = async (
+  options?: RequestInit,
+): Promise<Strategy[]> => {
+  return customFetch<Strategy[]>(getListStrategiesUrl(), {
     ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
+    method: "GET",
+  });
+};
 
 export const getListStrategiesQueryKey = () => {
-    return [
-    `/api/strategies`
-    ] as const;
-    }
+  return [`/api/strategies`] as const;
+};
 
+export const getListStrategiesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listStrategies>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listStrategies>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-export const getListStrategiesQueryOptions = <TData = Awaited<ReturnType<typeof listStrategies>>, TError = ErrorType<UnauthorizedResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listStrategies>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-) => {
+  const queryKey = queryOptions?.queryKey ?? getListStrategiesQueryKey();
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listStrategies>>> = ({
+    signal,
+  }) => listStrategies({ signal, ...requestOptions });
 
-  const queryKey =  queryOptions?.queryKey ?? getListStrategiesQueryKey();
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listStrategies>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
 
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listStrategies>>> = ({ signal }) => listStrategies({ signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listStrategies>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type ListStrategiesQueryResult = NonNullable<Awaited<ReturnType<typeof listStrategies>>>
-export type ListStrategiesQueryError = ErrorType<UnauthorizedResponse>
-
+export type ListStrategiesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listStrategies>>
+>;
+export type ListStrategiesQueryError = ErrorType<UnauthorizedResponse>;
 
 /**
  * @summary List all strategies for the authenticated user
  */
 
-export function useListStrategies<TData = Awaited<ReturnType<typeof listStrategies>>, TError = ErrorType<UnauthorizedResponse>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listStrategies>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export function useListStrategies<
+  TData = Awaited<ReturnType<typeof listStrategies>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listStrategies>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListStrategiesQueryOptions(options);
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-
-  const queryOptions = getListStrategiesQueryOptions(options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-
 
 export const getCreateStrategyUrl = () => {
-
-
-
-
-  return `/api/strategies`
-}
+  return `/api/strategies`;
+};
 
 /**
  * @summary Create a new strategy
  */
-export const createStrategy = async (createStrategyInput: CreateStrategyInput, options?: RequestInit): Promise<Strategy> => {
-
-  return customFetch<Strategy>(getCreateStrategyUrl(),
-  {
+export const createStrategy = async (
+  createStrategyInput: CreateStrategyInput,
+  options?: RequestInit,
+): Promise<Strategy> => {
+  return customFetch<Strategy>(getCreateStrategyUrl(), {
     ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      createStrategyInput,)
-  }
-);}
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createStrategyInput),
+  });
+};
 
+export const getCreateStrategyMutationOptions = <
+  TError = ErrorType<UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createStrategy>>,
+    TError,
+    { data: BodyType<CreateStrategyInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createStrategy>>,
+  TError,
+  { data: BodyType<CreateStrategyInput> },
+  TContext
+> => {
+  const mutationKey = ["createStrategy"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
 
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createStrategy>>,
+    { data: BodyType<CreateStrategyInput> }
+  > = (props) => {
+    const { data } = props ?? {};
 
+    return createStrategy(data, requestOptions);
+  };
 
-export const getCreateStrategyMutationOptions = <TError = ErrorType<UnauthorizedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createStrategy>>, TError,{data: BodyType<CreateStrategyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createStrategy>>, TError,{data: BodyType<CreateStrategyInput>}, TContext> => {
+  return { mutationFn, ...mutationOptions };
+};
 
-const mutationKey = ['createStrategy'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
+export type CreateStrategyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createStrategy>>
+>;
+export type CreateStrategyMutationBody = BodyType<CreateStrategyInput>;
+export type CreateStrategyMutationError = ErrorType<UnauthorizedResponse>;
 
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createStrategy>>, {data: BodyType<CreateStrategyInput>}> = (props) => {
-          const {data} = props ?? {};
-
-          return  createStrategy(data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type CreateStrategyMutationResult = NonNullable<Awaited<ReturnType<typeof createStrategy>>>
-    export type CreateStrategyMutationBody = BodyType<CreateStrategyInput>
-    export type CreateStrategyMutationError = ErrorType<UnauthorizedResponse>
-
-    /**
+/**
  * @summary Create a new strategy
  */
-export const useCreateStrategy = <TError = ErrorType<UnauthorizedResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createStrategy>>, TError,{data: BodyType<CreateStrategyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof createStrategy>>,
-        TError,
-        {data: BodyType<CreateStrategyInput>},
-        TContext
-      > => {
-      return useMutation(getCreateStrategyMutationOptions(options));
-    }
+export const useCreateStrategy = <
+  TError = ErrorType<UnauthorizedResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createStrategy>>,
+    TError,
+    { data: BodyType<CreateStrategyInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createStrategy>>,
+  TError,
+  { data: BodyType<CreateStrategyInput> },
+  TContext
+> => {
+  return useMutation(getCreateStrategyMutationOptions(options));
+};
 
-export const getUpdateStrategyUrl = (id: number,) => {
-
-
-
-
-  return `/api/strategies/${id}`
-}
+export const getUpdateStrategyUrl = (id: number) => {
+  return `/api/strategies/${id}`;
+};
 
 /**
  * @summary Update a strategy
  */
-export const updateStrategy = async (id: number,
-    createStrategyInput: CreateStrategyInput, options?: RequestInit): Promise<Strategy> => {
-
-  return customFetch<Strategy>(getUpdateStrategyUrl(id),
-  {
+export const updateStrategy = async (
+  id: number,
+  createStrategyInput: CreateStrategyInput,
+  options?: RequestInit,
+): Promise<Strategy> => {
+  return customFetch<Strategy>(getUpdateStrategyUrl(id), {
     ...options,
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      createStrategyInput,)
-  }
-);}
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createStrategyInput),
+  });
+};
 
+export const getUpdateStrategyMutationOptions = <
+  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateStrategy>>,
+    TError,
+    { id: number; data: BodyType<CreateStrategyInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateStrategy>>,
+  TError,
+  { id: number; data: BodyType<CreateStrategyInput> },
+  TContext
+> => {
+  const mutationKey = ["updateStrategy"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
 
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateStrategy>>,
+    { id: number; data: BodyType<CreateStrategyInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
 
+    return updateStrategy(id, data, requestOptions);
+  };
 
-export const getUpdateStrategyMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateStrategy>>, TError,{id: number;data: BodyType<CreateStrategyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updateStrategy>>, TError,{id: number;data: BodyType<CreateStrategyInput>}, TContext> => {
+  return { mutationFn, ...mutationOptions };
+};
 
-const mutationKey = ['updateStrategy'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
+export type UpdateStrategyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateStrategy>>
+>;
+export type UpdateStrategyMutationBody = BodyType<CreateStrategyInput>;
+export type UpdateStrategyMutationError = ErrorType<
+  UnauthorizedResponse | NotFoundResponse
+>;
 
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateStrategy>>, {id: number;data: BodyType<CreateStrategyInput>}> = (props) => {
-          const {id,data} = props ?? {};
-
-          return  updateStrategy(id,data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type UpdateStrategyMutationResult = NonNullable<Awaited<ReturnType<typeof updateStrategy>>>
-    export type UpdateStrategyMutationBody = BodyType<CreateStrategyInput>
-    export type UpdateStrategyMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse>
-
-    /**
+/**
  * @summary Update a strategy
  */
-export const useUpdateStrategy = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateStrategy>>, TError,{id: number;data: BodyType<CreateStrategyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof updateStrategy>>,
-        TError,
-        {id: number;data: BodyType<CreateStrategyInput>},
-        TContext
-      > => {
-      return useMutation(getUpdateStrategyMutationOptions(options));
-    }
+export const useUpdateStrategy = <
+  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateStrategy>>,
+    TError,
+    { id: number; data: BodyType<CreateStrategyInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateStrategy>>,
+  TError,
+  { id: number; data: BodyType<CreateStrategyInput> },
+  TContext
+> => {
+  return useMutation(getUpdateStrategyMutationOptions(options));
+};
 
-export const getDeleteStrategyUrl = (id: number,) => {
-
-
-
-
-  return `/api/strategies/${id}`
-}
+export const getDeleteStrategyUrl = (id: number) => {
+  return `/api/strategies/${id}`;
+};
 
 /**
  * @summary Delete a strategy
  */
-export const deleteStrategy = async (id: number, options?: RequestInit): Promise<void> => {
-
-  return customFetch<void>(getDeleteStrategyUrl(id),
-  {
+export const deleteStrategy = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteStrategyUrl(id), {
     ...options,
-    method: 'DELETE'
+    method: "DELETE",
+  });
+};
 
+export const getDeleteStrategyMutationOptions = <
+  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteStrategy>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteStrategy>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteStrategy"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
 
-  }
-);}
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteStrategy>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
 
+    return deleteStrategy(id, requestOptions);
+  };
 
+  return { mutationFn, ...mutationOptions };
+};
 
+export type DeleteStrategyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteStrategy>>
+>;
 
-export const getDeleteStrategyMutationOptions = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteStrategy>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof deleteStrategy>>, TError,{id: number}, TContext> => {
+export type DeleteStrategyMutationError = ErrorType<
+  UnauthorizedResponse | NotFoundResponse
+>;
 
-const mutationKey = ['deleteStrategy'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteStrategy>>, {id: number}> = (props) => {
-          const {id} = props ?? {};
-
-          return  deleteStrategy(id,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type DeleteStrategyMutationResult = NonNullable<Awaited<ReturnType<typeof deleteStrategy>>>
-
-    export type DeleteStrategyMutationError = ErrorType<UnauthorizedResponse | NotFoundResponse>
-
-    /**
+/**
  * @summary Delete a strategy
  */
-export const useDeleteStrategy = <TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteStrategy>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof deleteStrategy>>,
-        TError,
-        {id: number},
-        TContext
-      > => {
-      return useMutation(getDeleteStrategyMutationOptions(options));
-    }
+export const useDeleteStrategy = <
+  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteStrategy>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteStrategy>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteStrategyMutationOptions(options));
+};
 
 export const getGetDashboardSummaryUrl = () => {
-
-
-
-
-  return `/api/dashboard/summary`
-}
+  return `/api/dashboard/summary`;
+};
 
 /**
  * @summary Get dashboard summary metrics for the authenticated user
  */
-export const getDashboardSummary = async ( options?: RequestInit): Promise<DashboardSummary> => {
-
-  return customFetch<DashboardSummary>(getGetDashboardSummaryUrl(),
-  {
+export const getDashboardSummary = async (
+  options?: RequestInit,
+): Promise<DashboardSummary> => {
+  return customFetch<DashboardSummary>(getGetDashboardSummaryUrl(), {
     ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
+    method: "GET",
+  });
+};
 
 export const getGetDashboardSummaryQueryKey = () => {
-    return [
-    `/api/dashboard/summary`
-    ] as const;
-    }
+  return [`/api/dashboard/summary`] as const;
+};
 
+export const getGetDashboardSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDashboardSummary>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDashboardSummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-export const getGetDashboardSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getDashboardSummary>>, TError = ErrorType<UnauthorizedResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDashboardSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-) => {
+  const queryKey = queryOptions?.queryKey ?? getGetDashboardSummaryQueryKey();
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDashboardSummary>>
+  > = ({ signal }) => getDashboardSummary({ signal, ...requestOptions });
 
-  const queryKey =  queryOptions?.queryKey ?? getGetDashboardSummaryQueryKey();
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDashboardSummary>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
 
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDashboardSummary>>> = ({ signal }) => getDashboardSummary({ signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDashboardSummary>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type GetDashboardSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getDashboardSummary>>>
-export type GetDashboardSummaryQueryError = ErrorType<UnauthorizedResponse>
-
+export type GetDashboardSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDashboardSummary>>
+>;
+export type GetDashboardSummaryQueryError = ErrorType<UnauthorizedResponse>;
 
 /**
  * @summary Get dashboard summary metrics for the authenticated user
  */
 
-export function useGetDashboardSummary<TData = Awaited<ReturnType<typeof getDashboardSummary>>, TError = ErrorType<UnauthorizedResponse>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDashboardSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export function useGetDashboardSummary<
+  TData = Awaited<ReturnType<typeof getDashboardSummary>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDashboardSummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDashboardSummaryQueryOptions(options);
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-
-  const queryOptions = getGetDashboardSummaryQueryOptions(options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
-
-
-
-
-
-
 
 export const getGetAnalyticsSummaryUrl = () => {
-
-
-
-
-  return `/api/analytics/summary`
-}
+  return `/api/analytics/summary`;
+};
 
 /**
  * @summary Get analytics data including equity curve and breakdowns
  */
-export const getAnalyticsSummary = async ( options?: RequestInit): Promise<AnalyticsSummary> => {
-
-  return customFetch<AnalyticsSummary>(getGetAnalyticsSummaryUrl(),
-  {
+export const getAnalyticsSummary = async (
+  options?: RequestInit,
+): Promise<AnalyticsSummary> => {
+  return customFetch<AnalyticsSummary>(getGetAnalyticsSummaryUrl(), {
     ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
+    method: "GET",
+  });
+};
 
 export const getGetAnalyticsSummaryQueryKey = () => {
-    return [
-    `/api/analytics/summary`
-    ] as const;
-    }
+  return [`/api/analytics/summary`] as const;
+};
 
+export const getGetAnalyticsSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAnalyticsSummary>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAnalyticsSummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-export const getGetAnalyticsSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getAnalyticsSummary>>, TError = ErrorType<UnauthorizedResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAnalyticsSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-) => {
+  const queryKey = queryOptions?.queryKey ?? getGetAnalyticsSummaryQueryKey();
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getAnalyticsSummary>>
+  > = ({ signal }) => getAnalyticsSummary({ signal, ...requestOptions });
 
-  const queryKey =  queryOptions?.queryKey ?? getGetAnalyticsSummaryQueryKey();
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAnalyticsSummary>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
 
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAnalyticsSummary>>> = ({ signal }) => getAnalyticsSummary({ signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAnalyticsSummary>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type GetAnalyticsSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getAnalyticsSummary>>>
-export type GetAnalyticsSummaryQueryError = ErrorType<UnauthorizedResponse>
-
+export type GetAnalyticsSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAnalyticsSummary>>
+>;
+export type GetAnalyticsSummaryQueryError = ErrorType<UnauthorizedResponse>;
 
 /**
  * @summary Get analytics data including equity curve and breakdowns
  */
 
-export function useGetAnalyticsSummary<TData = Awaited<ReturnType<typeof getAnalyticsSummary>>, TError = ErrorType<UnauthorizedResponse>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAnalyticsSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export function useGetAnalyticsSummary<
+  TData = Awaited<ReturnType<typeof getAnalyticsSummary>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAnalyticsSummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAnalyticsSummaryQueryOptions(options);
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-
-  const queryOptions = getGetAnalyticsSummaryQueryOptions(options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-
-
-
-
-
-
-export const getGetCalendarDailyUrl = (params?: GetCalendarDailyParams,) => {
+export const getGetCalendarDailyUrl = (params?: GetCalendarDailyParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
+      normalizedParams.append(key, value === null ? "null" : value.toString());
     }
   });
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/calendar/daily?${stringifiedParams}` : `/api/calendar/daily`
-}
+  return stringifiedParams.length > 0
+    ? `/api/calendar/daily?${stringifiedParams}`
+    : `/api/calendar/daily`;
+};
 
 /**
  * @summary Get daily P&L summary for calendar view
  */
-export const getCalendarDaily = async (params?: GetCalendarDailyParams, options?: RequestInit): Promise<DailyPnl[]> => {
-
-  return customFetch<DailyPnl[]>(getGetCalendarDailyUrl(params),
-  {
+export const getCalendarDaily = async (
+  params?: GetCalendarDailyParams,
+  options?: RequestInit,
+): Promise<DailyPnl[]> => {
+  return customFetch<DailyPnl[]>(getGetCalendarDailyUrl(params), {
     ...options,
-    method: 'GET'
+    method: "GET",
+  });
+};
 
-
-  }
-);}
-
-
-
-
-
-export const getGetCalendarDailyQueryKey = (params?: GetCalendarDailyParams,) => {
-    return [
-    `/api/calendar/daily`, ...(params ? [params] : [])
-    ] as const;
-    }
-
-
-export const getGetCalendarDailyQueryOptions = <TData = Awaited<ReturnType<typeof getCalendarDaily>>, TError = ErrorType<UnauthorizedResponse>>(params?: GetCalendarDailyParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCalendarDaily>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetCalendarDailyQueryKey = (
+  params?: GetCalendarDailyParams,
 ) => {
+  return [`/api/calendar/daily`, ...(params ? [params] : [])] as const;
+};
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+export const getGetCalendarDailyQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCalendarDaily>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(
+  params?: GetCalendarDailyParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCalendarDaily>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetCalendarDailyQueryKey(params);
+  const queryKey =
+    queryOptions?.queryKey ?? getGetCalendarDailyQueryKey(params);
 
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getCalendarDaily>>
+  > = ({ signal }) => getCalendarDaily(params, { signal, ...requestOptions });
 
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCalendarDaily>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCalendarDaily>>> = ({ signal }) => getCalendarDaily(params, { signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCalendarDaily>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type GetCalendarDailyQueryResult = NonNullable<Awaited<ReturnType<typeof getCalendarDaily>>>
-export type GetCalendarDailyQueryError = ErrorType<UnauthorizedResponse>
-
+export type GetCalendarDailyQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCalendarDaily>>
+>;
+export type GetCalendarDailyQueryError = ErrorType<UnauthorizedResponse>;
 
 /**
  * @summary Get daily P&L summary for calendar view
  */
 
-export function useGetCalendarDaily<TData = Awaited<ReturnType<typeof getCalendarDaily>>, TError = ErrorType<UnauthorizedResponse>>(
- params?: GetCalendarDailyParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCalendarDaily>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export function useGetCalendarDaily<
+  TData = Awaited<ReturnType<typeof getCalendarDaily>>,
+  TError = ErrorType<UnauthorizedResponse>,
+>(
+  params?: GetCalendarDailyParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCalendarDaily>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCalendarDailyQueryOptions(params, options);
 
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-
-  const queryOptions = getGetCalendarDailyQueryOptions(params,options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
@@ -1026,36 +1151,93 @@ export function useGetCalendarDaily<TData = Awaited<ReturnType<typeof getCalenda
  * @summary Get Brokers
  */
 export const getGetBrokersUrl = () => {
-  return '/api/brokers';
-}
+  return "/api/brokers";
+};
 
 export const getBrokers = async (options?: RequestInit): Promise<Broker[]> => {
-
-  return customFetch<Broker[]>(getGetBrokersUrl(),
-  {
+  return customFetch<Broker[]>(getGetBrokersUrl(), {
     ...options,
-    method: 'GET'
-  }
-);}
+    method: "GET",
+  });
+};
 
 export const getBulkTradeImportUrl = () => {
-  return `/api/trades/import`
-}
+  return `/api/trades/import`;
+};
 
 /**
  * @summary Bulk import new trades
  */
-export const bulkTradeImport = async (bulkTradeData: any, options?: RequestInit): Promise<BulkTradeImportResponse> => {
-
-  return await customFetch<BulkTradeImportResponse>(getBulkTradeImportUrl(),
-  {
+export const bulkTradeImport = async (
+  bulkTradeData: any,
+  options?: RequestInit,
+): Promise<BulkTradeImportResponse> => {
+  return await customFetch<BulkTradeImportResponse>(getBulkTradeImportUrl(), {
     ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      bulkTradeData,)
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(bulkTradeData),
   });
-}
+};
 
+export const getDepositsUrl = () => {
+  return `/api/deposits`;
+};
 
+/**
+ * @summary getDeposits
+ */
+export const getDeposits = async (
+  options?: RequestInit,
+): Promise<Deposit[]> => {
+  return await customFetch<Deposit[]>(getDepositsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
 
+export const getWithdrawalsUrl = () => {
+  return `/api/withdrawals`;
+};
+
+/**
+ * @summary getWithdrawals
+ */
+export const getWithdrawals = async (
+  options?: RequestInit,
+): Promise<Withdrawal[]> => {
+  return await customFetch<Withdrawal[]>(getWithdrawalsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+/**
+ * @summary Create Deposit
+ */
+export const createDeposit = async (
+  createDepositInput: CreateDepositInput,
+  options?: RequestInit,
+): Promise<Deposit[]> => {
+  return await customFetch<Deposit[]>(getDepositsUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createDepositInput),
+  });
+};
+
+/**
+ * @summary Create Withdrawal
+ */
+export const createWithdrawal = async (
+  createWithdrawalInput: CreateWithdrawalInput,
+  options?: RequestInit,
+): Promise<Withdrawal[]> => {
+  return await customFetch<Withdrawal[]>(getWithdrawalsUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createWithdrawalInput),
+  });
+};
