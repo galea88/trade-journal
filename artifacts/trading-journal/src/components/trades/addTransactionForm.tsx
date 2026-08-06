@@ -27,24 +27,45 @@ export function DepositWithdrawalForm({ onSuccess }) {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (transactionType === "deposit") {
-      const payload = { depositAmount: amount };
-      createDeposit(payload);
-    } else {
-      const payload = { withdrawalAmount: amount };
-      createWithdrawal(payload);
+    try {
+      let result;
+
+      if (transactionType === "deposit") {
+        const payload = { depositAmount: amount };
+        result = await createDeposit(payload);
+
+        toast({
+          title: "Deposit Successful!",
+          description: `Amount: $${result.depositAmount}`,
+        });
+      } else {
+        const payload = { withdrawalAmount: amount };
+        result = await createWithdrawal(payload);
+
+        toast({
+          title: "Withdrawal Successful!",
+          description: `Amount: $${result.withdrawalAmount}`,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Transaction failed",
+        description: "Something went wrong!",
+        variant: "destructive",
+      });
     }
-    toast({ title: "Transaction logged" });
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pt-4">
       <div className="grid grid-cols-1 gap-4">
         <div className="space-y-2">
-          <label className="text-xs font-medium">Transaction type</label>
+          <label className="text-xs font-medium">
+            Transaction type <span className="text-destructive">*</span>
+          </label>
           <Select
             value={transactionType}
             onValueChange={(value) => setTransactionType(value)}
@@ -59,7 +80,9 @@ export function DepositWithdrawalForm({ onSuccess }) {
           </Select>
         </div>
         <div className="space-y-2">
-          <label className="text-xs font-medium">Amount</label>
+          <label className="text-xs font-medium">
+            Amount <span className="text-destructive">*</span>
+          </label>
           <Input
             type="number"
             step="0.01"
@@ -67,14 +90,18 @@ export function DepositWithdrawalForm({ onSuccess }) {
             onChange={(e) => setAmount(e.target.value)}
             onBlur={handleBlur}
             placeholder="Amount"
+            required
           />
         </div>
         <div className="space-y-2">
-          <label className="text-xs font-medium">Date</label>
+          <label className="text-xs font-medium">
+            Date <span className="text-destructive">*</span>
+          </label>
           <Input
             type="datetime-local"
             value={date}
             onChange={(e) => setDate(e.target.value)}
+            required
           />
         </div>
         <div className="space-y-2"></div>
