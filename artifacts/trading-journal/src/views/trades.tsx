@@ -28,7 +28,7 @@ import { format } from "date-fns";
 import { TradeForm } from "@/components/trades/TradeForm";
 import { CsvImportDialog } from "@/components/trades/CsvImportDialogEnhanced";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { DepositWithdrawalForm } from "@/components/trades/addTransactionForm";
+import { AddTransactionForm } from "@/components/trades/AddTransactionForm";
 
 export default function Trades() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -101,7 +101,7 @@ export default function Trades() {
                   value="deposit-withdrawal"
                   className="space-y-4 pt-4"
                 >
-                  <DepositWithdrawalForm
+                  <AddTransactionForm
                     onSuccess={() => setIsCreateOpen(false)}
                   />
                 </TabsContent>

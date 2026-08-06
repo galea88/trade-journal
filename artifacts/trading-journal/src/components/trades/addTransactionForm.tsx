@@ -12,7 +12,7 @@ import {
 } from "../ui/select";
 import { createDeposit, createWithdrawal } from "@workspace/api-client-react";
 
-export function DepositWithdrawalForm({ onSuccess }) {
+export function AddTransactionForm({ onSuccess }) {
   const [amount, setAmount] = useState<string>("");
   const [date, setDate] = useState<string>("");
   const [transactionType, setTransactionType] = useState<string>("deposit");
@@ -41,6 +41,10 @@ export function DepositWithdrawalForm({ onSuccess }) {
           title: "Deposit Successful!",
           description: `Amount: $${result.depositAmount}`,
         });
+
+        setAmount("");
+        setDate("");
+        setTransactionType("deposit");
       } else {
         const payload = { withdrawalAmount: amount };
         result = await createWithdrawal(payload);
@@ -50,6 +54,8 @@ export function DepositWithdrawalForm({ onSuccess }) {
           description: `Amount: $${result.withdrawalAmount}`,
         });
       }
+
+      onSuccess();
     } catch (error) {
       toast({
         title: "Transaction failed",
