@@ -25,20 +25,25 @@ router.get("/withdrawals", requireAuth, async (req, res) => {
 });
 
 router.post("/deposits", requireAuth, async (req, res) => {
+  const { userId } = req as AuthedRequest;
   const body = req.body;
 
   const [transaction] = await db
     .insert(depositsTable)
-    .values({ depositAmount: body.depositAmount })
+    .values({ depositUserId: userId, depositAmount: body.depositAmount })
     .returning();
+
+  res.status(201).json(transaction);
 });
 
 router.post("/withdrawals", requireAuth, async (req, res) => {
+  const { userId } = req as AuthedRequest;
   const body = req.body;
 
   const [withdrawal] = await db
     .insert(withdrawalsTable)
     .values({
+      withdrawalUserId: userId,
       withdrawalAmount: body.withdrawalAmount,
     })
     .returning();

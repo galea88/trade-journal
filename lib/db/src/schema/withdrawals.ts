@@ -10,6 +10,7 @@ import { z } from "zod/v4";
 
 export const withdrawalsTable = pgTable("withdrawals", {
   withdrawalId: bigserial("withdrawal_id", { mode: "number" }).primaryKey(),
+  withdrawalUserId: text("withdrawal_user_id").notNull(),
   withdrawalAmount: numeric("withdrawal_amount", {
     precision: 12,
     scale: 2,
@@ -22,6 +23,7 @@ export const withdrawalsTable = pgTable("withdrawals", {
 export const insertWithdrawalSchema = createInsertSchema(withdrawalsTable)
   .omit({
     withdrawalId: true,
+    withdrawalUserId: true,
     withdrawalCreatedAt: true,
   })
   .extend({
