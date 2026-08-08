@@ -54,6 +54,14 @@ export interface Trade {
   updatedAt: string;
 }
 
+export interface PaginatedTrades {
+  data: Trade[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export type CreateTradeInputAssetType =
   (typeof CreateTradeInputAssetType)[keyof typeof CreateTradeInputAssetType];
 
@@ -192,6 +200,10 @@ export type ListTradesParams = {
   strategyId?: number;
   /** Filter trades by entry date (YYYY-MM-DD) */
   date?: string;
+  /** Page number (1-indexed) */
+  page?: number;
+  /** Number of trades per page */
+  limit?: number;
 };
 
 export type ListTradesAssetType =

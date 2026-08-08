@@ -60,15 +60,27 @@ paths:
             type: string
             format: date
           required: false
+        - in: query
+          name: page
+          description: Page number (1-indexed)
+          schema:
+            type: integer
+            default: 1
+          required: false
+        - in: query
+          name: limit
+          description: Number of trades per page
+          schema:
+            type: integer
+            default: 25
+          required: false
       responses:
         "200":
-          description: List of trades
+          description: Paginated list of trades
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Trade"
+                $ref: "#/components/schemas/PaginatedTrades"
         "401":
           $ref: "#/components/responses/Unauthorized"
     post:
@@ -395,6 +407,28 @@ components:
         - entryDate
         - createdAt
         - updatedAt
+
+    PaginatedTrades:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Trade"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPages:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - limit
+        - totalPages
 
     CreateTradeInput:
       type: object

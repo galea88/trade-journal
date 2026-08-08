@@ -31,6 +31,7 @@ import type {
   HealthStatus,
   ListTradesParams,
   NotFoundResponse,
+  PaginatedTrades,
   Strategy,
   Trade,
   UnauthorizedResponse,
@@ -144,8 +145,8 @@ export const getListTradesUrl = (params?: ListTradesParams) => {
 export const listTrades = async (
   params?: ListTradesParams,
   options?: RequestInit,
-): Promise<Trade[]> => {
-  return customFetch<Trade[]>(getListTradesUrl(params), {
+): Promise<PaginatedTrades> => {
+  return customFetch<PaginatedTrades>(getListTradesUrl(params), {
     ...options,
     method: "GET",
   });

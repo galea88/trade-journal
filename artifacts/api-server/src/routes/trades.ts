@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, and, desc, gte, lt } from "drizzle-orm";
+import { eq, and, desc, gte, lt, count } from "drizzle-orm";
 import { db } from "@workspace/db";
 import { tradesTable } from "@workspace/db/schema";
 import { requireAuth } from "./auth";
@@ -63,7 +63,7 @@ function enrichTrade(trade: (typeof tradesTable.$inferSelect)) {
 
 router.get("/trades", requireAuth, async (req, res) => {
   const { userId } = req as AuthedRequest;
-  const { assetType, strategyId, date } = req.query;
+  const { assetType, strategyId, date, page: pageParam, limit: limitParam } = req.query;
 
   const conditions = [eq(tradesTable.userId, userId)];
   if (assetType && typeof assetType === "string") {
@@ -82,13 +82,34 @@ router.get("/trades", requireAuth, async (req, res) => {
     conditions.push(lt(tradesTable.exitDate, nextDay));
   }
 
-  const trades = await db
-    .select()
-    .from(tradesTable)
-    .where(and(...conditions))
-    .orderBy(desc(tradesTable.entryDate));
+  const page = Math.max(1, parseInt(pageParam as string, 10) || 1);
+  const limit = Math.min(
+    100,
+    Math.max(1, parseInt(limitParam as string, 10) || 25),
+  );
+  const offset = (page - 1) * limit;
 
-  res.json(trades.map(enrichTrade));
+  const [trades, [{ total }]] = await Promise.all([
+    db
+      .select()
+      .from(tradesTable)
+      .where(and(...conditions))
+      .orderBy(desc(tradesTable.entryDate))
+      .limit(limit)
+      .offset(offset),
+    db
+      .select({ total: count() })
+      .from(tradesTable)
+      .where(and(...conditions)),
+  ]);
+
+  res.json({
+    data: trades.map(enrichTrade),
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  });
 });
 
 router.post("/trades", requireAuth, async (req, res) => {

@@ -163,15 +163,17 @@ export default function Calendar() {
 }
 
 function DayDetailSheet({ date, onClose }: { date: string | null; onClose: () => void }) {
-  const { data: trades, isLoading: tradesLoading } = useListTrades(
-    { date: date ?? undefined },
+  const { data: response, isLoading: tradesLoading } = useListTrades(
+    { date: date ?? undefined, limit: 100 },
     {
       query: {
-        queryKey: getListTradesQueryKey({ date: date ?? undefined }),
+        queryKey: getListTradesQueryKey({ date: date ?? undefined, limit: 100 }),
         enabled: !!date,
       }
     }
   );
+
+  const trades = response?.data;
 
   const { data: strategies } = useListStrategies(
     { query: { queryKey: getListStrategiesQueryKey(), enabled: !!date } }

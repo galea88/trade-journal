@@ -22,6 +22,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from "@/components/ui/pagination";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Upload } from "lucide-react";
 import { format } from "date-fns";
@@ -30,25 +39,34 @@ import { CsvImportDialog } from "@/components/trades/CsvImportDialogEnhanced";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AddTransactionForm } from "@/components/trades/AddTransactionForm";
 
+const TRADES_PER_PAGE = 25;
+
 export default function Trades() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [assetTypeFilter, setAssetTypeFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
 
-  const { data: trades, isLoading } = useListTrades(
-    {
-      assetType:
-        assetTypeFilter !== "all" ? (assetTypeFilter as any) : undefined,
+  const listParams = {
+    assetType:
+      assetTypeFilter !== "all" ? (assetTypeFilter as any) : undefined,
+    page,
+    limit: TRADES_PER_PAGE,
+  };
+
+  const { data: response, isLoading } = useListTrades(listParams, {
+    query: {
+      queryKey: getListTradesQueryKey(listParams),
     },
-    {
-      query: {
-        queryKey: getListTradesQueryKey({
-          assetType:
-            assetTypeFilter !== "all" ? (assetTypeFilter as any) : undefined,
-        }),
-      },
-    },
-  );
+  });
+
+  const trades = response?.data;
+  const totalPages = response?.totalPages ?? 1;
+
+  const handleAssetTypeChange = (value: string) => {
+    setAssetTypeFilter(value);
+    setPage(1);
+  };
 
   return (
     <div className="space-y-6">
@@ -58,7 +76,7 @@ export default function Trades() {
           <p className="text-muted-foreground mt-1">Review your execution.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Select value={assetTypeFilter} onValueChange={setAssetTypeFilter}>
+          <Select value={assetTypeFilter} onValueChange={handleAssetTypeChange}>
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="All Assets" />
             </SelectTrigger>
@@ -156,10 +174,81 @@ export default function Trades() {
               </tbody>
             </table>
           </div>
+          {totalPages > 1 && (
+            <div className="border-t border-border py-4">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      aria-disabled={page <= 1}
+                      className={
+                        page <= 1 ? "pointer-events-none opacity-50" : ""
+                      }
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (page > 1) setPage(page - 1);
+                      }}
+                    />
+                  </PaginationItem>
+                  {getPageNumbers(page, totalPages).map((item, i) =>
+                    item === "ellipsis" ? (
+                      <PaginationItem key={`ellipsis-${i}`}>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    ) : (
+                      <PaginationItem key={item}>
+                        <PaginationLink
+                          href="#"
+                          isActive={item === page}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setPage(item);
+                          }}
+                        >
+                          {item}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ),
+                  )}
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      aria-disabled={page >= totalPages}
+                      className={
+                        page >= totalPages
+                          ? "pointer-events-none opacity-50"
+                          : ""
+                      }
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (page < totalPages) setPage(page + 1);
+                      }}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
   );
+}
+
+function getPageNumbers(page: number, totalPages: number): (number | "ellipsis")[] {
+  const pages: (number | "ellipsis")[] = [];
+  const window = 1;
+  const start = Math.max(2, page - window);
+  const end = Math.min(totalPages - 1, page + window);
+
+  pages.push(1);
+  if (start > 2) pages.push("ellipsis");
+  for (let i = start; i <= end; i++) pages.push(i);
+  if (end < totalPages - 1) pages.push("ellipsis");
+  if (totalPages > 1) pages.push(totalPages);
+
+  return pages;
 }
 
 function TradeRow({ trade }: { trade: any }) {
