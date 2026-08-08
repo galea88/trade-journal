@@ -8,7 +8,8 @@
     "lib/*"
   ],
   "scripts": {
-    "dev": "next dev -p 3000",
+    "dev-server": "cd artifacts/api-server && npm run dev",
+    "dev-front": "cd artifacts/trading-journal && npm run dev",
     "build": "npm run typecheck && npm run build",
     "typecheck:libs": "tsc --build",
     "typecheck": "npm run typecheck:libs && npm run typecheck"
